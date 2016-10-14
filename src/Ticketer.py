@@ -147,10 +147,12 @@ if len(tickets) > 0:
             sum_worked += t.get_worked()
 
         print("Average estimation of completed tickets is: " + str(sum_estimates / len(
-            completed_worked_tickets)) +
-              ". With " + str(len(completed_worked_tickets)) + " tickets")
+            completed_worked_tickets)))
         print("Average worked of completed tickets is: " + str(sum_worked / len(
-            completed_worked_tickets)) +
+            completed_worked_tickets)))
+        print("Factor is: " + str(
+            (sum_worked / len(completed_worked_tickets)) /
+            (sum_estimates / len(completed_worked_tickets))) +
               ". With " + str(len(completed_worked_tickets)) + " tickets")
 
     print("===========================")
