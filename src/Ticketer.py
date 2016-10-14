@@ -1,3 +1,4 @@
+import datetime
 import requests
 import json
 import config
@@ -83,7 +84,49 @@ while len(tickets_json) is not 0:
 if len(tickets) > 0:
     print("Starting to compute metrics.")
 
+    print("Start computing cycle time.")
+    # get the list with only closed tickets
+    closed_tickets = [t for t in tickets if t.get_status() == 4 and t.get_plan_level() < 2 and
+                                            t.get_completed() is not None and t.get_created is
+                                                                              not None]
+
+    if len(closed_tickets) == 0:
+        print("There are no closed tickets.")
+    else:
+        sum_completion_times = datetime.timedelta(0)
+        for t in closed_tickets:
+            sum_completion_times += (t.get_completed() - t.get_created())
+
+        print("Average cycle time is:" + str(sum_completion_times / len(closed_tickets)) +
+              ". With " + str(len(closed_tickets)) + " tickets")
+
+    print("Start computing work done time.")
+    # get the list with only closed tickets
+    worked_tickets = [t for t in tickets if t.get_worked() is not None and t.get_worked() != 0]
+    if len(worked_tickets) == 0:
+        print("There are no tickets with worked hours.")
+    else:
+        sum_worked_hours = 0
+        for t in worked_tickets:
+            sum_worked_hours += t.get_worked()
+
+        print("Average worked time is:" + str(sum_worked_hours / len(worked_tickets)) +
+              ". With " + str(len(worked_tickets)) + " tickets")
+
+    print("Start computing estimation.")
+    # get the list with only closed tickets
+    estimation_tickets = [t for t in tickets if t.get_estimate() is not None and
+                                                t.get_estimate() != 0]
+    if len(estimation_tickets) == 0:
+        print("There are no tickets with an estimation.")
+    else:
+        sum_estimations = 0
+        for t in estimation_tickets:
+            sum_estimations += t.get_estimate()
+
+        print("Average estimation is:" + str(sum_estimations / len(estimation_tickets)) +
+              ". With " + str(len(estimation_tickets)) + " tickets")
+
     print("Done computing metrics.")
 else:
     print("No tickets to compute metrics on.")
-
