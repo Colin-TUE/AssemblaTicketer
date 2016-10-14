@@ -84,6 +84,7 @@ while len(tickets_json) is not 0:
 if len(tickets) > 0:
     print("Starting to compute metrics.")
 
+    print("===========================")
     print("Start computing cycle time.")
     # get the list with only closed tickets
     closed_tickets = [t for t in tickets if t.get_status() == 4 and t.get_plan_level() < 2 and
@@ -97,12 +98,14 @@ if len(tickets) > 0:
         for t in closed_tickets:
             sum_completion_times += (t.get_completed() - t.get_created())
 
-        print("Average cycle time is:" + str(sum_completion_times / len(closed_tickets)) +
+        print("Average cycle time is: " + str(sum_completion_times / len(closed_tickets)) +
               ". With " + str(len(closed_tickets)) + " tickets")
 
+    print("===========================")
     print("Start computing work done time.")
     # get the list with only closed tickets
-    worked_tickets = [t for t in tickets if t.get_worked() is not None and t.get_worked() != 0]
+    worked_tickets = [t for t in tickets if
+        t.get_worked() is not None and t.get_worked() != 0 and t.get_plan_level() < 2]
     if len(worked_tickets) == 0:
         print("There are no tickets with worked hours.")
     else:
@@ -110,13 +113,14 @@ if len(tickets) > 0:
         for t in worked_tickets:
             sum_worked_hours += t.get_worked()
 
-        print("Average worked time is:" + str(sum_worked_hours / len(worked_tickets)) +
+        print("Average worked time is: " + str(sum_worked_hours / len(worked_tickets)) +
               ". With " + str(len(worked_tickets)) + " tickets")
 
+    print("===========================")
     print("Start computing estimation.")
     # get the list with only closed tickets
     estimation_tickets = [t for t in tickets if t.get_estimate() is not None and
-                                                t.get_estimate() != 0]
+                                                t.get_estimate() != 0 and t.get_plan_level() < 2]
     if len(estimation_tickets) == 0:
         print("There are no tickets with an estimation.")
     else:
@@ -124,9 +128,46 @@ if len(tickets) > 0:
         for t in estimation_tickets:
             sum_estimations += t.get_estimate()
 
-        print("Average estimation is:" + str(sum_estimations / len(estimation_tickets)) +
+        print("Average estimation is: " + str(sum_estimations / len(estimation_tickets)) +
               ". With " + str(len(estimation_tickets)) + " tickets")
 
+    print("===========================")
+    print("Start completed worked estimation.")
+    # get the list with only closed tickets
+    completed_worked_tickets = [t for t in tickets if
+        t.get_estimate() is not None and t.get_estimate() != 0 and t.get_worked() is not None and
+        t.get_worked() != 0 and t.get_status() == 4 and t.get_plan_level() < 2]
+    if len(completed_worked_tickets) == 0:
+        print("There are no tickets with an estimation.")
+    else:
+        sum_worked = 0
+        sum_estimates = 0
+        for t in completed_worked_tickets:
+            sum_estimates += t.get_estimate()
+            sum_worked += t.get_worked()
+
+        print("Average estimation of completed tickets is: " + str(sum_estimates / len(
+            completed_worked_tickets)) +
+              ". With " + str(len(completed_worked_tickets)) + " tickets")
+        print("Average worked of completed tickets is: " + str(sum_worked / len(
+            completed_worked_tickets)) +
+              ". With " + str(len(completed_worked_tickets)) + " tickets")
+
+    print("===========================")
+    print("Start counting status estimation.")
+    # get the list with only closed tickets
+    count_tickets = [t for t in tickets if t.get_status() is not None]
+    if len(count_tickets) == 0:
+        print("There are no tickets with an estimation.")
+    else:
+        count = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+        for t in count_tickets:
+            count[t.get_status()] += 1
+
+        print("Count of the tickets according to status: " + str(count) +
+              ". With " + str(len(count_tickets)) + " tickets")
+
+    print("===========================")
     print("Done computing metrics.")
 else:
     print("No tickets to compute metrics on.")
