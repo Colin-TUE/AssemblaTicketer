@@ -33,11 +33,14 @@ while picked < 0 or picked >= len(spaces_json):
 
 space_id = picked
 
-# Set the condition for looping to true
-ticketsPresent = True
+# set the empty collection of all tickets
+tickets = []
 
+# start with page 1 of the tickets API
 j = 1
 space = spaces_json[space_id]['id']
+
+print("Start downloading tickets.")
 tickets_req = requests.get(ticketsurl(space), headers = headers, params = {
     'per_page': 10,
     'page'    : j, 'report': 0
@@ -45,24 +48,26 @@ tickets_req = requests.get(ticketsurl(space), headers = headers, params = {
 try:
     tickets_json = json.loads(tickets_req.text)
 except json.decoder.JSONDecodeError as e:
-    print("No tickets to download at all:")
+    print("No tickets to download at all.")
     tickets_json = []
 
 # Loop over all pages of the json and get the tickets
 while len(tickets_json) is not 0:
     # Fetch all tickets on this page
     for i in range(len(tickets_json)):
-        print("Fetching: " + str(tickets_json[i]))
+        # print("Fetching: " + str(tickets_json[i]))
         # actually store relevant information
         # TODO
         ticket = Ticket(tickets_json[i]['number'])
-        ticket.setCreated(tickets_json[i]['created_on'])
-        ticket.setCompelted(tickets_json[i]['completed_date'])
-        ticket.setEstimate(tickets_json[i]['estimate'])
-        ticket.setWorkedHours(tickets_json[i]['total_invested_hours'])
-        ticket.setPlanLevel(tickets_json[i]['hierarchy_type'])
-        ticket.setStatus(tickets_json[i]['status'])
-        ticket.setDueDate(tickets_json[i]['due_date'])
+        ticket.set_created(tickets_json[i]['created_on'])
+        ticket.set_completed(tickets_json[i]['completed_date'])
+        ticket.set_estimate(tickets_json[i]['estimate'])
+        ticket.set_worked_hours(tickets_json[i]['total_invested_hours'])
+        ticket.set_plan_level(tickets_json[i]['hierarchy_type'])
+        ticket.set_status(tickets_json[i]['status'])
+        ticket.set_due_date(tickets_json[i]['due_date'])
+        # print(ticket.to_string())
+        tickets.append(ticket)
 
     # go to next page if possible
     j += 1
@@ -72,7 +77,13 @@ while len(tickets_json) is not 0:
         tickets_json = json.loads(tickets_req.text)
     except json.decoder.JSONDecodeError as e:
         # If there is no more data, a JSON decode error will be thrown
-        print("Done downloading tickets")
+        print("Done downloading tickets (" + str(len(tickets)) + ").")
         break
-print("Starting to compute metrics.")
+
+if len(tickets) > 0:
+    print("Starting to compute metrics.")
+
+    print("Done computing metrics.")
+else:
+    print("No tickets to compute metrics on.")
 
