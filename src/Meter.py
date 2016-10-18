@@ -37,7 +37,7 @@ class Meter:
     def closed_epic_cycle_time(self):
         closed_epics = [t for t in self.__tickets if
             t.get_status() == Ticket.statuses_str["Done"] and
-            t.get_plan_level() > Ticket.plan_levels_str["Epic"] and
+            t.get_plan_level() >= Ticket.plan_levels_str["Epic"] and
             t.get_completed() is not None and
             t.get_created is not None
         ]
@@ -55,20 +55,20 @@ class Meter:
 
 
     def epic_cycle_time(self):
-        closed_epics = [t for t in self.__tickets if
-            t.get_plan_level() > Ticket.plan_levels_str["Epic"] and
+        epics = [t for t in self.__tickets if
+            t.get_plan_level() >= Ticket.plan_levels_str["Epic"] and
             t.get_created is not None
         ]
-        if len(closed_epics) == 0:
+        if len(epics) == 0:
             return {result_key: 0, count_key: 0}
         else:
             sum_completion_times = datetime.timedelta(0)
-            for t in closed_epics:
+            for t in epics:
                 completion = t.get_completed() if t.get_completed() is not None else \
                     self.__current_time
                 sum_completion_times += (completion - t.get_created())
 
             return {
-                result_key: sum_completion_times / len(closed_epics),
-                count_key : len(closed_epics)
+                result_key: sum_completion_times / len(epics),
+                count_key : len(epics)
             }
