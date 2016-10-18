@@ -1,14 +1,15 @@
 from datetime import datetime
-import json
+
+plan_levels = {0: "None", 1: "Subtask", 2: "Story", 3: "Epic"}
+plan_levels_str = {v: k for k, v in plan_levels.items()}
+statuses_str = {"New": 0, "In Progress": 1, "Test": 2, "Review": 3, "Done": 4}
+statuses = {v: k for k, v in statuses_str.items()}
 
 
 class Ticket:
     """
     Class that represents a ticket and its relevant information for the Meter
     """
-
-    plan_levels = {0: "None", 1: "Subtask", 2: "Story", 3: "Epic"}
-    statuses = {"New": 0, "In Progress": 1, "Test": 2, "Review": 3, "Done": 4}
 
     def __init__(self, number):
         """
@@ -162,7 +163,7 @@ class Ticket:
         :param param: The value to set
         :return: none
         """
-        if param in self.plan_levels.keys():
+        if param in plan_levels.keys():
             planlvl = param
         else:
             planlvl = None
@@ -175,8 +176,8 @@ class Ticket:
         :param param: The value to set
         :return: none
         """
-        if param in self.statuses.keys():
-            status = self.statuses[param]
+        if param in statuses_str.keys():
+            status = statuses_str[param]
         else:
             status = None
 

@@ -1,8 +1,9 @@
-import datetime
 import requests
 import json
+
+import Meter
 import config
-from Ticket import Ticket
+import Ticket
 
 # Basic values
 headers = {'X-API-Key': config.key, 'X-API-Secret': config.secret}
@@ -30,7 +31,10 @@ for i in range(len(spaces_json)):
 
 picked = -1
 while picked < 0 or picked >= len(spaces_json):
-    picked = int(input("Which space to download tickets from?"))
+    try:
+        picked = int(input("Which space to download tickets from?"))
+    except ValueError:
+        picked = -1
 
 space_id = picked
 
@@ -59,7 +63,7 @@ while len(tickets_json) is not 0:
         # print("Fetching: " + str(tickets_json[i]))
         # actually store relevant information
         # TODO
-        ticket = Ticket(tickets_json[i]['number'])
+        ticket = Ticket.Ticket(tickets_json[i]['number'])
         ticket.set_created(tickets_json[i]['created_on'])
         ticket.set_completed(tickets_json[i]['completed_date'])
         ticket.set_estimate(tickets_json[i]['estimate'])
@@ -83,29 +87,26 @@ while len(tickets_json) is not 0:
 
 if len(tickets) > 0:
     print("Starting to compute metrics.")
+    meter = Meter.Meter(tickets)
 
     print("===========================")
     print("Start computing cycle time.")
-    # get the list with only closed tickets
-    closed_tickets = [t for t in tickets if t.get_status() == 4 and t.get_plan_level() < 2 and
-                                            t.get_completed() is not None and t.get_created is
-                                                                              not None]
-
-    if len(closed_tickets) == 0:
-        print("There are no closed tickets.")
-    else:
-        sum_completion_times = datetime.timedelta(0)
-        for t in closed_tickets:
-            sum_completion_times += (t.get_completed() - t.get_created())
-
-        print("Average cycle time is: " + str(sum_completion_times / len(closed_tickets)) +
-              ". With " + str(len(closed_tickets)) + " tickets")
+    res = meter.closed_tickets_cycle_time()
+    print("Average ticket cycle time is: " + str(res[Meter.result_key]) +
+          ". With " + str(res[Meter.count_key]) + " tickets")
+    res = meter.closed_epic_cycle_time()
+    print("Average cycle time is: " + str(res[Meter.result_key]) +
+          ". With " + str(res[Meter.count_key]) + " epics")
+    res = meter.epic_cycle_time()
+    print("Average running cycle time is: " + str(res[Meter.result_key]) +
+          ". With " + str(res[Meter.count_key]) + " epics")
 
     print("===========================")
     print("Start computing work done time.")
     # get the list with only closed tickets
     worked_tickets = [t for t in tickets if
-        t.get_worked() is not None and t.get_worked() != 0 and t.get_plan_level() < 2]
+        t.get_worked() is not None and t.get_worked() != 0 and t.get_plan_level() < 2
+    ]
     if len(worked_tickets) == 0:
         print("There are no tickets with worked hours.")
     else:
@@ -120,7 +121,8 @@ if len(tickets) > 0:
     print("Start computing estimation.")
     # get the list with only closed tickets
     estimation_tickets = [t for t in tickets if t.get_estimate() is not None and
-                                                t.get_estimate() != 0 and t.get_plan_level() < 2]
+                                                t.get_estimate() != 0 and t.get_plan_level() < 2
+    ]
     if len(estimation_tickets) == 0:
         print("There are no tickets with an estimation.")
     else:
@@ -136,7 +138,8 @@ if len(tickets) > 0:
     # get the list with only closed tickets
     completed_worked_tickets = [t for t in tickets if
         t.get_estimate() is not None and t.get_estimate() != 0 and t.get_worked() is not None and
-        t.get_worked() != 0 and t.get_status() == 4 and t.get_plan_level() < 2]
+        t.get_worked() != 0 and t.get_status() == 4 and t.get_plan_level() < 2
+    ]
     if len(completed_worked_tickets) == 0:
         print("There are no tickets with an estimation.")
     else:
@@ -166,7 +169,12 @@ if len(tickets) > 0:
         for t in count_tickets:
             count[t.get_status()] += 1
 
-        print("Count of the tickets according to status: " + str(count) +
+        countStr = {
+            "New"               : count[0], "In Progress": count[1], "Testing": count[2], "Review":
+                count[3], "Done": count[4]
+        }
+
+        print("Count of the tickets according to status: " + str(countStr) +
               ". With " + str(len(count_tickets)) + " tickets")
 
     print("===========================")
