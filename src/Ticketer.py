@@ -1,33 +1,47 @@
+import datetime
 import requests
 import json
-
+import sys
 import Meter
 import config
 import Ticket
+import printer
 
 # Basic values
 headers = {'X-API-Key': config.key, 'X-API-Secret': config.secret}
-basicurl = 'https://api.assembla.com/v1/'
-spaceurl = basicurl + 'spaces.json'
+basic_url = 'https://api.assembla.com/v1/'
+space_url = basic_url + 'spaces.json'
 
 
 # Returns the url of the document list for space {@code space}
-def ticketsurl(space):
-    return basicurl + 'spaces/' + space + '/tickets'
+def tickets_url(workspace):
+    """
+    The url to fetch the tickets from for a particular workspace
+    :param workspace: The workspace
+    :return: The url to fetch the tickets from
+    """
+    return basic_url + 'spaces/' + workspace + '/tickets'
 
 
 # Returns the url of the specific ticket with id {@code id} in space {@code space}
-def wikiurl(space, number):
-    return basicurl + ' spaces/' + space + '/tickets/' + number + '.json'
+def ticket_id_url(workspace, number):
+    """
+    The url for a specific ticket in a specific workspace
+    :param workspace: The workspace
+    :param number: The number of the ticket
+    :return: The url to fetch that specific ticket
+    """
+    return basic_url + ' spaces/' + workspace + '/tickets/' + number + '.json'
 
 
 # First we fetch all spaces from this user
-spaces_req = requests.get(spaceurl, headers = headers)
+spaces_req = requests.get(space_url, headers = headers)
 spaces_json = json.loads(spaces_req.text)
 
 # Print each of the spaces and ask which to download from
 for i in range(len(spaces_json)):
-    print(str(i) + ": " + spaces_json[i]['name'])
+    print(str(i) + ": " + spaces_json[i]['name']  # + " (id:" + str(spaces_json[i]['id']) + ")"
+          )
 
 picked = -1
 while picked < 0 or picked >= len(spaces_json):
@@ -46,7 +60,7 @@ j = 1
 space = spaces_json[space_id]['id']
 
 print("Start downloading tickets.")
-tickets_req = requests.get(ticketsurl(space), headers = headers, params = {
+tickets_req = requests.get(tickets_url(space), headers = headers, params = {
     'per_page': 10,
     'page'    : j, 'report': 0
 })
@@ -61,8 +75,6 @@ while len(tickets_json) is not 0:
     # Fetch all tickets on this page
     for i in range(len(tickets_json)):
         # print("Fetching: " + str(tickets_json[i]))
-        # actually store relevant information
-        # TODO
         ticket = Ticket.Ticket(tickets_json[i]['number'])
         ticket.set_created(tickets_json[i]['created_on'])
         ticket.set_completed(tickets_json[i]['completed_date'])
@@ -76,7 +88,7 @@ while len(tickets_json) is not 0:
 
     # go to next page if possible
     j += 1
-    tickets_req = requests.get(ticketsurl(space), headers = headers,
+    tickets_req = requests.get(tickets_url(space), headers = headers,
                                params = {'per_page': 10, 'page': j, 'report': 0})
     try:
         tickets_json = json.loads(tickets_req.text)
@@ -86,98 +98,46 @@ while len(tickets_json) is not 0:
         break
 
 if len(tickets) > 0:
-    print("Starting to compute metrics.")
     meter = Meter.Meter(tickets)
 
-    print("===========================")
-    print("Start computing cycle time.")
-    res = meter.closed_tickets_cycle_time()
-    print("Average ticket cycle time is: " + str(res[Meter.result_key]) +
-          ". With " + str(res[Meter.count_key]) + " tickets")
-    res = meter.closed_epic_cycle_time()
-    print("Average cycle time is: " + str(res[Meter.result_key]) +
-          ". With " + str(res[Meter.count_key]) + " epics")
-    res = meter.epic_cycle_time()
-    print("Average running cycle time is: " + str(res[Meter.result_key]) +
-          ". With " + str(res[Meter.count_key]) + " epics")
+    options_output = {0: "Console", 1: "File"}
+    print(options_output)
+    picked = -1
+    while picked < 0 or picked >= len(options_output):
+        try:
+            picked = int(input("Where to write the output to?"))
+        except ValueError:
+            picked = -1
 
-    print("===========================")
-    print("Start computing work done time.")
-    # get the list with only closed tickets
-    worked_tickets = [t for t in tickets if
-        t.get_worked() is not None and t.get_worked() != 0 and t.get_plan_level() < 2
-    ]
-    if len(worked_tickets) == 0:
-        print("There are no tickets with worked hours.")
-    else:
-        sum_worked_hours = 0
-        for t in worked_tickets:
-            sum_worked_hours += t.get_worked()
+    output_selection = picked
 
-        print("Average worked time is: " + str(sum_worked_hours / len(worked_tickets)) +
-              ". With " + str(len(worked_tickets)) + " tickets")
+    if output_selection == 0:
+        # if written to console then ask what to print
+        picked = picked
+        options_stats = {0: "General Statistics", 1: "Sprint Related Statistics"}
+        print(options_stats)
+        picked = -1
+        while picked < 0 or picked >= len(options_stats):
+            try:
+                picked = int(input("Which stats to compute on the tickets?"))
+            except ValueError:
+                picked = -1
 
-    print("===========================")
-    print("Start computing estimation.")
-    # get the list with only closed tickets
-    estimation_tickets = [t for t in tickets if t.get_estimate() is not None and
-                                                t.get_estimate() != 0 and t.get_plan_level() < 2
-    ]
-    if len(estimation_tickets) == 0:
-        print("There are no tickets with an estimation.")
-    else:
-        sum_estimations = 0
-        for t in estimation_tickets:
-            sum_estimations += t.get_estimate()
+        option_stats_selected = picked
 
-        print("Average estimation is: " + str(sum_estimations / len(estimation_tickets)) +
-              ". With " + str(len(estimation_tickets)) + " tickets")
+        if option_stats_selected == 0:
+            printer.general_stats(meter)
+        elif option_stats_selected == 1:
+            printer.sprint_stats(meter, space)
+    elif output_selection == 1:
+        # if output written  to file, compute everything
+        print("Writing output to file.")
+        sys.stdout = open("D:\\Temp\\ASMLProject\\output_" + str(datetime.datetime.now()).
+                          replace(" ", "_").replace(".", "_").replace(":", "_")
+                          + ".txt", "w")
+        print("Computing statistics for " + str(len(tickets)) + " tickets")
+        printer.general_stats(meter)
+        printer.sprint_stats(meter, space)
 
-    print("===========================")
-    print("Start completed worked estimation.")
-    # get the list with only closed tickets
-    completed_worked_tickets = [t for t in tickets if
-        t.get_estimate() is not None and t.get_estimate() != 0 and t.get_worked() is not None and
-        t.get_worked() != 0 and t.get_status() == 4 and t.get_plan_level() < 2
-    ]
-    if len(completed_worked_tickets) == 0:
-        print("There are no tickets with an estimation.")
-    else:
-        sum_worked = 0
-        sum_estimates = 0
-        for t in completed_worked_tickets:
-            sum_estimates += t.get_estimate()
-            sum_worked += t.get_worked()
-
-        print("Average estimation of completed tickets is: " + str(sum_estimates / len(
-            completed_worked_tickets)))
-        print("Average worked of completed tickets is: " + str(sum_worked / len(
-            completed_worked_tickets)))
-        print("Factor is: " + str(
-            (sum_worked / len(completed_worked_tickets)) /
-            (sum_estimates / len(completed_worked_tickets))) +
-              ". With " + str(len(completed_worked_tickets)) + " tickets")
-
-    print("===========================")
-    print("Start counting status estimation.")
-    # get the list with only closed tickets
-    count_tickets = [t for t in tickets if t.get_status() is not None]
-    if len(count_tickets) == 0:
-        print("There are no tickets with an estimation.")
-    else:
-        count = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
-        for t in count_tickets:
-            count[t.get_status()] += 1
-
-        countStr = {
-            "New"               : count[0], "In Progress": count[1], "Testing": count[2], "Review":
-                count[3], "Done": count[4]
-        }
-
-        print("Count of the tickets according to status: " + str(countStr) +
-              ". With " + str(len(count_tickets)) + " tickets")
-
-    print("===========================")
-    print("Done computing metrics.")
 else:
     print("No tickets to compute metrics on.")
