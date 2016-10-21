@@ -2,6 +2,7 @@ import datetime
 import requests
 import json
 import sys
+import time
 import Meter
 import config
 import Ticket
@@ -87,6 +88,7 @@ while len(tickets_json) is not 0:
         tickets.append(ticket)
 
     # go to next page if possible
+    time.sleep(1)
     j += 1
     tickets_req = requests.get(tickets_url(space), headers = headers,
                                params = {'per_page': 10, 'page': j, 'report': 0})
