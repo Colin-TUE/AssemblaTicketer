@@ -134,7 +134,7 @@ if len(tickets) > 0:
     elif output_selection == 1:
         # if output written  to file, compute everything
         print("Writing output to file.")
-        sys.stdout = open("D:\\Temp\\ASMLProject\\output_" + str(datetime.datetime.now()).
+        sys.stdout = open(config.output_dir + "\\output_" + str(datetime.datetime.now()).
                           replace(" ", "_").replace(".", "_").replace(":", "_")
                           + ".txt", "w")
         print("Computing statistics for " + str(len(tickets)) + " tickets")
